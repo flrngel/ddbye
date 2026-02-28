@@ -1,3 +1,5 @@
+skip unnecessary tests, we are running out of time, and this is a hackathon prototype. 
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
