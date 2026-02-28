@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import type { DiligenceRequest } from './types.js';
 
-const defaultDbPath = path.join(import.meta.dirname, '..', 'data', 'outreachos.db');
+const defaultDbPath = path.join(import.meta.dirname, '..', 'data', 'ddbye.db');
 const dbPath = path.resolve(process.env.DB_PATH || defaultDbPath);
 
 // Validate DB_PATH is within the project directory

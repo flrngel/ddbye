@@ -148,7 +148,7 @@ export default function ConsolePage() {
                 <SearchCheck className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-rounded text-base font-bold text-neutral-900">Outreach OS</div>
+                <div className="font-rounded text-base font-bold text-neutral-900">DDBye</div>
                 <div className="text-xs text-neutral-500">Due diligence console</div>
               </div>
             </div>

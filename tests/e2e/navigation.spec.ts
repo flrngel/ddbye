@@ -6,7 +6,7 @@ test.describe('Landing to console navigation', () => {
     await page.goto('/');
 
     // Verify landing page content
-    await expect(page.getByText('Outreach OS')).toBeVisible();
+    await expect(page.getByText('DDBye')).toBeVisible();
     await expect(page.getByText('Messy target brief in')).toBeVisible();
 
     // Click "Open console" and verify navigation

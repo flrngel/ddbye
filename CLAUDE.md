@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Outreach OS** — a frontend-only prototype for a founder/sales tool that turns a messy target brief into due-diligence research and channel-specific outreach (email, LinkedIn DM, X DM). There is no backend; the agent run is simulated in the frontend with seeded data and timers.
+**DDBye** — a frontend-only prototype for a founder/sales tool that turns a messy target brief into due-diligence research and channel-specific outreach (email, LinkedIn DM, X DM). There is no backend; the agent run is simulated in the frontend with seeded data and timers.
 
 The core workflow: **messy brief → due diligence → outreach**. The system should never write copy before resolving the target.
 
@@ -41,7 +41,7 @@ There is no test runner configured yet. `lint` is the only check.
 ### State management
 
 All app state lives in `src/store/AppContext.tsx` via React Context (`useApp()` hook). State includes:
-- `requests: DiligenceRequest[]` — persisted to `localStorage` key `outreachos-reset-front`
+- `requests: DiligenceRequest[]` — persisted to `localStorage` key `ddbye-front`
 - `draft: RequestInput` — the current intake form
 - `selectedId` — which request is shown in the detail view
 - Example loaders (`loadExample('pg' | 'a16z')`) and `submitDraft()` which creates a simulated request
@@ -83,4 +83,4 @@ Evidence provenance is first-class: every item must be labeled `User brief`, `Pu
 - Korean and English are mixed in sample briefs and intake copy — this is intentional (bilingual user)
 - The `cn()` utility (`src/lib/utils.ts`) is the standard way to merge Tailwind classes
 - No ESLint or Prettier configured — only `tsc --noEmit` for checking
-- The `index.html` title still says "My Google AI Studio App" — a leftover from scaffolding
+- The `index.html` title is "DDBye"

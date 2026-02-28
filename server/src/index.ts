@@ -28,5 +28,5 @@ app.route('/requests', redraftRoutes);
 const port = parseInt(process.env.PORT || '3001', 10);
 
 serve({ fetch: app.fetch, port }, () => {
-  console.log(`Outreach OS API server running on http://localhost:${port}`);
+  console.log(`DDBye API server running on http://localhost:${port}`);
 });

@@ -57,7 +57,7 @@ function createA16zDraft(): DraftInput {
   };
 }
 
-const STORAGE_KEY = 'outreachos-reset-front';
+const STORAGE_KEY = 'ddbye-front';
 
 function loadFromStorage(): DiligenceRequest[] {
   if (typeof window === 'undefined') return seededCases;

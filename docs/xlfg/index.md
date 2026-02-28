@@ -1,6 +1,6 @@
 # xlfg Knowledge Base
 
-Evidence-first software development lifecycle for Outreach OS.
+Evidence-first software development lifecycle for DDBye.
 
 ## Structure
 

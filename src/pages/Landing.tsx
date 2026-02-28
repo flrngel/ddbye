@@ -13,7 +13,7 @@ export default function Landing() {
               <SearchCheck className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-rounded text-sm font-bold text-neutral-900">Outreach OS</div>
+              <div className="font-rounded text-sm font-bold text-neutral-900">DDBye</div>
               <div className="text-xs text-neutral-500">Due diligence first. Outreach second.</div>
             </div>
           </div>
