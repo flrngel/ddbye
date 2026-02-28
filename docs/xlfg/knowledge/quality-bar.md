@@ -1,3 +1,3 @@
 # Quality Bar
 
-Standards and thresholds for shipping.
+Minimum quality standards for shipping code.
