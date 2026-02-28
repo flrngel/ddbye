@@ -102,6 +102,107 @@ worker/        Claude Agent SDK pipeline — 6-step agent with Zod-validated str
 
 The worker uses the Claude Agent SDK's `query()` function with JSON Schema output format. Each step gets its own Zod schema, system prompt, and tool allowlist. Web tools are only enabled for the resolve and research steps — all other steps run with tools disabled.
 
+## Technical Architecture
+
+```mermaid
+flowchart TB
+    subgraph client["Frontend — React 19 + Vite 7 + Tailwind v4"]
+        direction TB
+        Landing["Landing Page<br/><i>Marketing + Preview</i>"]
+        Console["Console Page<br/><i>Intake → Research Board → Outreach Studio</i>"]
+        Store["AppContext<br/><i>useApp() hook + localStorage</i>"]
+        Mock["Mock Agent<br/><i>Pattern-match → seeded cases<br/>setTimeout progression</i>"]
+        APIClient["API Client<br/><i>REST + SSE EventSource</i>"]
+
+        Console --> Store
+        Store -- "mock mode<br/>(no VITE_API_BASE)" --> Mock
+        Store -- "API mode" --> APIClient
+    end
+
+    subgraph tunnel["Cloudflare Tunnel"]
+        CF["ddbye.com<br/><i>HTTPS → localhost:3333</i>"]
+    end
+
+    subgraph server["API Server — Hono + Node.js"]
+        direction TB
+        REST["REST API<br/><code>POST /requests</code><br/><code>GET /requests/:id</code><br/><code>POST /requests/:id/redraft</code>"]
+        SSE["SSE Fan-out<br/><code>GET /requests/:id/events</code><br/><i>Named events per stage</i>"]
+        DB[("SQLite + WAL<br/><i>requests table<br/>JSON blob storage</i>")]
+        Dispatch["Worker Dispatch<br/><i>Stub: setTimeout chain<br/>Prod: spawn worker process</i>"]
+
+        REST --> DB
+        REST --> Dispatch
+        SSE --> DB
+        Dispatch --> SSE
+    end
+
+    subgraph worker["Worker — Claude Agent SDK"]
+        direction LR
+        Parse["Parse<br/><i>no tools</i>"]
+        Resolve["Resolve<br/><i>WebSearch<br/>WebFetch</i>"]
+        Research["Research<br/><i>WebSearch<br/>WebFetch</i>"]
+        Synthesize["Synthesize<br/><i>no tools</i>"]
+        Draft["Draft<br/><i>no tools</i>"]
+        QG{"Quality<br/>Gate"}
+
+        Parse --> Resolve --> Research --> Synthesize --> Draft --> QG
+        QG -- "violations<br/>(retry once)" --> Draft
+    end
+
+    subgraph schemas["Zod-Validated Structured Output per Step"]
+        direction LR
+        S1["ParsedJob"]
+        S2["ResolvedTarget"]
+        S3["ResearchContext"]
+        S4["SynthesisResult"]
+        S5["OutreachPacket"]
+        S6["QualityGateResult"]
+    end
+
+    CF --> client
+    APIClient -- "REST + SSE" --> REST
+    APIClient -- "SSE stream" --> SSE
+    Dispatch -- "spawns" --> worker
+    worker -- "progress events" --> SSE
+    Resolve & Research -. "web tools" .-> Web[(Public Web)]
+
+    Parse ~~~ S1
+    Resolve ~~~ S2
+    Research ~~~ S3
+    Synthesize ~~~ S4
+    Draft ~~~ S5
+    QG ~~~ S6
+
+    style client fill:#f3f0ff,stroke:#7c6fc4,color:#1a1a2e
+    style server fill:#eef3ff,stroke:#5b8def,color:#1a1a2e
+    style worker fill:#fff8e1,stroke:#f9a825,color:#1a1a2e
+    style tunnel fill:#e8f5e9,stroke:#43a047,color:#1a1a2e
+    style schemas fill:#fafafa,stroke:#d0d0d0,stroke-dasharray:5 5,color:#666
+    style DB fill:#e3f2fd,stroke:#1976d2,color:#1a1a2e
+    style QG fill:#fff3e0,stroke:#f57c00,color:#1a1a2e
+    style Web fill:#fff8e1,stroke:#f9a825,color:#1a1a2e
+    style Mock fill:#f3e5f5,stroke:#9c27b0,color:#1a1a2e
+    style CF fill:#e8f5e9,stroke:#43a047,color:#1a1a2e
+```
+
+### Data Flow
+
+**Mock mode** (demo, no server): Brief → pattern-match to seeded case → `setTimeout` chain (1.1s → 2.3s → 3.6s → 5.0s) → progressive stage updates → localStorage.
+
+**API mode** (production): Brief → `POST /requests` → server dispatches worker → worker runs 6-step Claude Agent SDK pipeline → SSE streams named events (`request.parsing`, `request.resolved`, ...) → frontend hydrates on `request.ready`.
+
+**Evidence provenance** is enforced end-to-end: every claim carries a `sourceType` label (`Public web` with URL, `User brief`, or `Inference`) from Zod schemas through to the rendered outreach copy.
+
+### Type System
+
+Three parallel type definitions kept in sync manually:
+
+| Layer | File | `RequestStatus` |
+|-------|------|-----------------|
+| Frontend | `src/types.ts` | 3 states: `running · ready · failed` |
+| Server | `server/src/types.ts` | 8 states: `queued · parsing · resolving · researching · synthesizing · drafting · ready · failed` |
+| Worker | `worker/src/types.ts` | Pipeline-internal types + `ProgressEvent` callbacks |
+
 ## Built With
 
 Built at the 2026 Portland Hackathon using [Claude Code](https://claude.ai/code) as the primary development tool.
