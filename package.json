@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "npx --prefix server tsx server/src/index.ts & vite --port=3333 --host=0.0.0.0 & cloudflared tunnel run ddbye & wait",
+    "dev": "npx --prefix server tsx server/src/index.ts & sleep 2 && vite --port=3333 --host=0.0.0.0 & cloudflared tunnel run ddbye & wait",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "lint": "tsc --noEmit",

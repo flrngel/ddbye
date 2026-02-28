@@ -189,32 +189,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // API mode: fetch requests on mount, re-subscribe to running ones
+  // Retries up to 5 times if server isn't ready yet (e.g. during yarn run dev startup)
   useEffect(() => {
     if (isMockMode) return;
     let cancelled = false;
-    api.fetchRequests()
-      .then((data) => {
-        if (cancelled) return;
-        setRequests(data.length ? data : seededCases);
-        setSelectedId(data[0]?.id ?? '');
-        // Re-subscribe to SSE for any in-progress requests
-        const running = data.filter((r) => r.status === 'running');
-        running.forEach((r) => {
-          setInFlightCount((c) => c + 1);
-          subscribeAndHydrate(r.id);
+    let retries = 0;
+    const maxRetries = 5;
+
+    function tryFetch() {
+      api.fetchRequests()
+        .then((data) => {
+          if (cancelled) return;
+          setRequests(data.length ? data : []);
+          setSelectedId(data[0]?.id ?? '');
+          const running = data.filter((r) => r.status === 'running');
+          running.forEach((r) => {
+            setInFlightCount((c) => c + 1);
+            subscribeAndHydrate(r.id);
+          });
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          if (err instanceof MockModeError) {
+            setRequests(loadFromStorage());
+            setIsLoading(false);
+          } else if (retries < maxRetries) {
+            retries++;
+            console.log(`[API] Server not ready, retrying in 2s (${retries}/${maxRetries})...`);
+            setTimeout(tryFetch, 2000);
+          } else {
+            console.error('Failed to connect to API server after retries:', err);
+            setIsLoading(false);
+          }
         });
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof MockModeError) {
-          setRequests(loadFromStorage());
-        } else {
-          console.error('Failed to fetch requests from API:', err);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+    }
+    tryFetch();
+
     return () => { cancelled = true; };
   }, [subscribeAndHydrate]);
 
