@@ -58,6 +58,7 @@ function createA16zDraft(): DraftInput {
 }
 
 const STORAGE_KEY = 'ddbye-front';
+const isMockMode = !import.meta.env.VITE_API_BASE;
 
 function loadFromStorage(): DiligenceRequest[] {
   if (typeof window === 'undefined') return seededCases;
@@ -65,13 +66,21 @@ function loadFromStorage(): DiligenceRequest[] {
   if (!raw) return seededCases;
   try {
     const parsed = JSON.parse(raw) as DiligenceRequest[];
-    return parsed.length ? parsed : seededCases;
+    if (!parsed.length) return seededCases;
+    // In mock mode, any "running" requests from a previous session are stale
+    // (timers are lost on refresh). Mark them as failed so the user can retry.
+    if (isMockMode) {
+      return parsed.map((r) =>
+        r.status === 'running'
+          ? { ...r, status: 'failed' as const, errorMessage: 'Run interrupted — page was refreshed. Click retry to re-run.' }
+          : r,
+      );
+    }
+    return parsed;
   } catch {
     return seededCases;
   }
 }
-
-const isMockMode = !import.meta.env.VITE_API_BASE;
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [requests, setRequests] = useState<DiligenceRequest[]>(loadFromStorage);
@@ -82,32 +91,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const isSubmitting = inFlightCount > 0;
   const timeoutsRef = useRef<Map<string, number[]>>(new Map());
   const sseCleanupRef = useRef<Map<string, () => void>>(new Map());
-
-  // API mode: fetch requests on mount
-  useEffect(() => {
-    if (isMockMode) return;
-    let cancelled = false;
-    api.fetchRequests()
-      .then((data) => {
-        if (cancelled) return;
-        setRequests(data.length ? data : seededCases);
-        setSelectedId(data[0]?.id ?? '');
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (err instanceof MockModeError) {
-          // shouldn't happen since we checked VITE_API_BASE, but fall back
-          setRequests(loadFromStorage());
-        } else {
-          console.error('Failed to fetch requests from API:', err);
-          // Keep whatever we loaded from storage
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
@@ -204,6 +187,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     sseCleanupRef.current.set(id, cleanup);
   }, []);
+
+  // API mode: fetch requests on mount, re-subscribe to running ones
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    api.fetchRequests()
+      .then((data) => {
+        if (cancelled) return;
+        setRequests(data.length ? data : seededCases);
+        setSelectedId(data[0]?.id ?? '');
+        // Re-subscribe to SSE for any in-progress requests
+        const running = data.filter((r) => r.status === 'running');
+        running.forEach((r) => {
+          setInFlightCount((c) => c + 1);
+          subscribeAndHydrate(r.id);
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof MockModeError) {
+          setRequests(loadFromStorage());
+        } else {
+          console.error('Failed to fetch requests from API:', err);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [subscribeAndHydrate]);
 
   const submitDraft = () => {
     if (isMockMode) {
