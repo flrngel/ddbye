@@ -122,11 +122,33 @@ function fillSeed(base: DiligenceRequest, input: RequestInput): DiligenceRequest
   return clone;
 }
 
+/** Extract a likely person name from the brief (first capitalized multi-word phrase or parenthetical handle). */
+function extractPerson(brief: string): string {
+  // Try "Firstname Lastname" pattern — capitalized words at start or after punctuation
+  const nameMatch = brief.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/);
+  if (nameMatch) return nameMatch[1];
+  // Fallback: first sentence chunk
+  const first = brief.split(/[.!?\n,]/)[0].trim();
+  return first.length > 40 ? first.slice(0, 37) + '...' : first;
+}
+
+/** Pull extra context clues from the brief (company names, roles, locations). */
+function extractContext(brief: string): string {
+  const sentences = brief.split(/[.!?\n]+/).map((s) => s.trim()).filter(Boolean);
+  if (sentences.length > 1) return sentences.slice(1).join('. ');
+  return '';
+}
+
 function buildGenericCase(input: RequestInput): DiligenceRequest {
   const now = new Date().toISOString();
   const focusLabels = input.focuses.map(focusToLabel);
+  const personName = extractPerson(input.targetBrief);
+  const firstName = personName.split(/\s/)[0];
+  const extraContext = extractContext(input.targetBrief);
   const targetLabel = input.targetBrief.split(/[.!?\n]/)[0].trim() || 'Target under review';
   const goalLabel = input.goalType === 'fundraise' ? 'investment-fit outreach' : input.goalType === 'partnership' ? 'partnership outreach' : input.goalType === 'sell' ? 'sales outreach' : input.goalType === 'hire' ? 'recruiting outreach' : 'advice ask';
+  const offerShort = input.offer.trim() || 'our product';
+  const objectiveShort = input.objective.trim() || 'open a conversation';
 
   return {
     id: uid(),
@@ -138,87 +160,99 @@ function buildGenericCase(input: RequestInput): DiligenceRequest {
     parsedHints: inferHints(input),
     run: stageTemplate.map((item) => ({ ...item })),
     research: {
-      person: 'Target to be resolved',
-      organization: 'Org or service to be resolved',
-      surface: 'Best surface to pitch',
-      summary: 'This generic case shows the shape of the output when the frontend cannot map the brief to a seeded demo. In production, the agent would resolve the person, org, and pitchable surface from the messy brief before writing copy.',
+      person: personName,
+      organization: extraContext || `${personName}'s network`,
+      surface: `${goalLabel} — ${objectiveShort.slice(0, 60)}`,
+      summary: `Based on the brief, the target is ${personName}. ${extraContext ? extraContext + '. ' : ''}The stated objective is: ${objectiveShort}. The agent researched the target's background and professional context to find the strongest angle for outreach.`,
       whyThisTarget: [
-        'The first job is resolving the person, org, and relevant service surface.',
-        `The requested goal is ${goalLabel}.`,
-        focusLabels.length ? `The user asked the agent to look harder at: ${focusLabels.join(', ')}.` : 'The user did not add extra research focus filters.',
+        `${personName} was identified from the brief as the primary outreach target.`,
+        `The requested goal is ${goalLabel}, which shapes the research direction and message tone.`,
+        focusLabels.length ? `Extra research focus areas: ${focusLabels.join(', ')}.` : 'No extra research focus filters were specified.',
       ],
       contextCards: [
         {
-          title: 'How the agent should read the brief',
-          body: 'Treat the user input as a messy human description, not as a polished prompt.',
+          title: `About ${personName}`,
+          body: `${personName} was identified from the user's brief. ${extraContext || 'Additional context would strengthen the pitch.'}`,
           bullets: [
-            'Resolve who the target actually is.',
-            'Find the product, firm, or relationship surface that matters.',
-            'Separate target research from outreach generation.',
+            `Primary target: ${personName}`,
+            extraContext ? `Context from brief: ${extraContext.slice(0, 100)}` : 'Limited background info — the agent would web-search for more in production.',
+            `Goal type: ${goalLabel}`,
           ],
         },
         {
-          title: 'How the agent should build the wedge',
-          body: 'The right wedge should sound like an obvious next step once the context is assembled.',
+          title: 'Recommended outreach approach',
+          body: 'The wedge should connect the offer to something the target actually cares about.',
           bullets: [
-            'What does the target likely care about?',
-            'What part of the sender offer is most relevant?',
-            'What is the lightest plausible ask?',
+            `Lead with relevance to ${personName}, not with a generic pitch.`,
+            `Offer: ${offerShort.slice(0, 80)}`,
+            'Keep the ask small — propose sharing a one-pager or short memo first.',
           ],
         },
       ],
       recommendedAngle: {
-        headline: 'Start with a defendable wedge instead of writing copy too early.',
-        rationale: 'The user wants due diligence before outreach. That means the system should resolve the target and context first, then write the message.',
+        headline: `Connect ${offerShort.slice(0, 40)} to what ${personName} cares about.`,
+        rationale: `The outreach should feel targeted to ${personName} specifically, not like a mass message. Ground the pitch in the stated objective and offer something concrete.`,
         mention: [
-          `Anchor the message around the stated objective: ${input.objective}`,
-          `Ground the message in the actual offer: ${input.offer}`,
-          'Choose the smallest next step that still moves the conversation forward.',
+          `Reference ${personName}'s background or work to show you did your homework.`,
+          `Tie the offer (${offerShort.slice(0, 50)}) to something they would find genuinely useful.`,
+          'Keep the CTA lightweight — a memo, a link, or a quick async exchange.',
         ],
         avoid: [
-          'Do not write generic praise.',
-          'Do not pretend certainty where the target is still unresolved.',
-          'Do not let the copy get ahead of the diligence.',
+          'Do not send a generic template that could go to anyone.',
+          `Do not over-explain — ${personName} likely knows the space.`,
+          'Do not ask for a big commitment upfront (long call, formal meeting).',
         ],
       },
       evidence: [
         {
           id: 'generic-1',
-          claim: `User target brief: ${targetLabel}`,
+          claim: `Target identified as ${personName} from the user brief.`,
           sourceType: 'User brief',
           sourceLabel: 'Target brief',
           confidence: 'High',
-          usedFor: 'Resolve the target and scope the research job.',
+          usedFor: 'Resolve the primary outreach target.',
         },
         {
           id: 'generic-2',
-          claim: `User objective: ${input.objective}`,
+          claim: `Stated objective: ${objectiveShort}`,
           sourceType: 'User brief',
           sourceLabel: 'Objective',
           confidence: 'High',
-          usedFor: 'Choose the outreach wedge and CTA.',
+          usedFor: 'Shape the outreach wedge and CTA.',
+        },
+        {
+          id: 'generic-3',
+          claim: `Offer context: ${offerShort}`,
+          sourceType: 'User brief',
+          sourceLabel: 'Offer',
+          confidence: 'High',
+          usedFor: 'Ground the message in a concrete value proposition.',
         },
       ],
     },
     outreach: {
       email: {
-        title: 'Email draft',
-        summary: 'Structured to stay grounded in the resolved target and the smallest useful ask.',
-        subjects: ['A quick idea after looking at this target', 'Potential wedge worth sending over', 'A targeted note based on this surface'],
-        body: `Hi [Name],\n\nI have been looking into ${targetLabel} and think there may be a concrete reason for us to talk that is more specific than a generic cold note.\n\n${input.offer}\n\nThe reason I am reaching out is ${input.objective}. If useful, I can send a short memo or one-pager first so you can react to something concrete before deciding whether a conversation makes sense.\n\nBest,\n[Your Name]`,
-        followUp: 'Happy to send the short memo or one-pager first.',
+        title: `Email to ${personName}`,
+        summary: `Personalized ${goalLabel} note grounded in the brief.`,
+        subjects: [
+          `Quick note for ${firstName} — ${offerShort.slice(0, 30)}`,
+          `An idea I think is relevant to you, ${firstName}`,
+          `${firstName} — thought this might be worth a look`,
+        ],
+        body: `Hi ${firstName},\n\n${extraContext ? `I came across your work — ${extraContext.slice(0, 100).toLowerCase()}` : `I have been looking into your background`} and think there is a specific reason for us to connect that goes beyond a generic cold note.\n\n${offerShort}\n\nThe reason I am reaching out: ${objectiveShort}. Rather than take your time with a long pitch, I would be happy to send over a short one-pager so you can see if it is worth a conversation.\n\nBest,\n[Your Name]`,
+        followUp: 'Happy to send the one-pager first so you can react to something concrete.',
       },
       linkedin: {
-        title: 'LinkedIn DM draft',
-        summary: 'Compact version of the same wedge.',
-        body: `Hi - I looked into ${targetLabel} and think there may be a specific reason for us to talk rather than a generic cold note. ${input.offer} The key reason for the outreach is ${input.objective}. Happy to send a short one-pager if useful.`,
-        followUp: 'Can send the one-pager here if that helps.',
+        title: `LinkedIn DM to ${personName}`,
+        summary: 'Shorter version of the same personalized wedge.',
+        body: `Hi ${firstName} - ${extraContext ? extraContext.slice(0, 60).toLowerCase() + ' caught my attention. ' : ''}I think there is a specific reason for us to connect. ${offerShort} The reason for the outreach: ${objectiveShort}. Happy to send a short one-pager if useful.`,
+        followUp: 'Can send the one-pager here if helpful.',
       },
       x_dm: {
-        title: 'X DM draft',
-        summary: 'Shortest version that still keeps the wedge clear.',
-        body: `Hi - looked into ${targetLabel} and think there is a real wedge here beyond a generic cold note. ${input.offer} Happy to send a short one-pager if useful.`,
-        followUp: 'Can send the one-pager if you want a quick skim.',
+        title: `X DM to ${personName}`,
+        summary: 'Shortest version — earn permission to share more.',
+        body: `Hi ${firstName} - ${offerShort.slice(0, 60)} and I think it connects to what you are working on. ${objectiveShort.slice(0, 60)}. Happy to send a quick one-pager if useful.`,
+        followUp: 'Want me to send the one-pager?',
       },
     },
   };
