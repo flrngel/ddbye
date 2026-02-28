@@ -35,3 +35,11 @@ ESLint and Prettier CI steps are expected to fail on pre-existing src/ violation
 **Decision:** Keep web tools in step 2 (resolve). The TODO's acceptance criterion is more specific than the spec's blanket exclusion. Without web access, the model can only resolve from training data, making it unable to verify current product surfaces.
 
 **Spec amendment needed:** Spec B2 should say "steps 1, 4, 6" rather than "steps 1, 2, 4, 6".
+
+## 2026-02-28: Vite env for mock mode detection
+
+Decided to use `!import.meta.env.VITE_API_BASE` as compile-time mock mode flag. This is correct for Vite (build-time inlining). Runtime detection via try/catch is unnecessary.
+
+## 2026-02-28: inFlightCount over boolean
+
+Replaced `isSubmitting: boolean` with `inFlightCount: number` to handle concurrent submissions without race conditions.

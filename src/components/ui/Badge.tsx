@@ -12,6 +12,7 @@ const badgeVariants = cva(
         blue: 'border-brand-blue-200 bg-brand-blue-100/80 text-brand-blue-700',
         ready: 'border-emerald-200 bg-emerald-50 text-emerald-700',
         running: 'border-sky-200 bg-sky-50 text-sky-700',
+        failed: 'border-red-200 bg-red-50 text-red-700',
       },
     },
     defaultVariants: {

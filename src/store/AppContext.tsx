@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { seededCases } from '@/data/sampleCases';
 import { advanceRun, createSimulatedRequest } from '@/logic/mockAgent';
+import * as api from '@/lib/api';
+import { MockModeError } from '@/lib/api';
 import type { Channel, DiligenceRequest, GoalType, RequestInput, ResearchFocus, Tone } from '@/types';
 
 type DraftInput = RequestInput;
@@ -26,6 +28,11 @@ type AppContextValue = {
   selectRequest: (id: string) => void;
   submitDraft: () => void;
   loadExample: (key: 'pg' | 'a16z') => void;
+  deleteRequest: (id: string) => void;
+  retryRequest: (id: string) => void;
+  redraft: (id: string, tone: Tone, channel: Channel) => void;
+  isSubmitting: boolean;
+  isLoading: boolean;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -62,29 +69,73 @@ function createA16zDraft(): DraftInput {
 
 const STORAGE_KEY = 'outreachos-reset-front';
 
+function loadFromStorage(): DiligenceRequest[] {
+  if (typeof window === 'undefined') return seededCases;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return seededCases;
+  try {
+    const parsed = JSON.parse(raw) as DiligenceRequest[];
+    return parsed.length ? parsed : seededCases;
+  } catch {
+    return seededCases;
+  }
+}
+
+const isMockMode = !import.meta.env.VITE_API_BASE;
+
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [requests, setRequests] = useState<DiligenceRequest[]>(() => {
-    if (typeof window === 'undefined') return seededCases;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seededCases;
-    try {
-      const parsed = JSON.parse(raw) as DiligenceRequest[];
-      return parsed.length ? parsed : seededCases;
-    } catch {
-      return seededCases;
-    }
-  });
+  const [requests, setRequests] = useState<DiligenceRequest[]>(loadFromStorage);
   const [selectedId, setSelectedId] = useState<string>(requests[0]?.id ?? '');
   const [draft, setDraft] = useState<DraftInput>(createPGDraft());
-  const timeoutsRef = useRef<number[]>([]);
+  const [inFlightCount, setInFlightCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(!isMockMode);
+  const isSubmitting = inFlightCount > 0;
+  const timeoutsRef = useRef<Map<string, number[]>>(new Map());
+  const sseCleanupRef = useRef<Map<string, () => void>>(new Map());
+
+  // API mode: fetch requests on mount
+  useEffect(() => {
+    if (isMockMode) return;
+    let cancelled = false;
+    setIsLoading(true);
+    api.fetchRequests()
+      .then((data) => {
+        if (cancelled) return;
+        setRequests(data.length ? data : seededCases);
+        setSelectedId(data[0]?.id ?? '');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof MockModeError) {
+          // shouldn't happen since we checked VITE_API_BASE, but fall back
+          setRequests(loadFromStorage());
+        } else {
+          console.error('Failed to fetch requests from API:', err);
+          // Keep whatever we loaded from storage
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
   }, [requests]);
 
+  const clearTimersForRequest = useCallback((id: string) => {
+    const timers = timeoutsRef.current.get(id);
+    if (timers) {
+      timers.forEach((tid) => window.clearTimeout(tid));
+      timeoutsRef.current.delete(id);
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
-      timeoutsRef.current.forEach((id) => window.clearTimeout(id));
+      timeoutsRef.current.forEach((timers) => timers.forEach((tid) => window.clearTimeout(tid)));
+      sseCleanupRef.current.forEach((cleanup) => cleanup());
     };
   }, []);
 
@@ -109,7 +160,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const selectRequest = (id: string) => setSelectedId(id);
 
-  const scheduleProgress = (id: string) => {
+  const scheduleProgress = useCallback((id: string) => {
+    clearTimersForRequest(id);
+    setInFlightCount((c) => c + 1);
+    const timerIds: number[] = [];
     const steps = [1100, 2300, 3600, 5000];
     steps.forEach((delay, index) => {
       const timeoutId = window.setTimeout(() => {
@@ -126,16 +180,134 @@ export function AppProvider({ children }: { children: ReactNode }) {
             };
           }),
         );
+        if (index === steps.length - 1) {
+          setInFlightCount((c) => c - 1);
+          timeoutsRef.current.delete(id);
+        }
       }, delay);
-      timeoutsRef.current.push(timeoutId);
+      timerIds.push(timeoutId);
+    });
+    timeoutsRef.current.set(id, timerIds);
+  }, [clearTimersForRequest]);
+
+  const subscribeAndHydrate = useCallback((id: string) => {
+    const cleanup = api.subscribeToEvents(id, (event) => {
+      if (event.type === 'request.ready' || event.type === 'request.failed') {
+        api.fetchRequest(id).then((full) => {
+          setRequests((current) => current.map((r) => (r.id === id ? full : r)));
+          setInFlightCount((c) => c - 1);
+        }).catch(() => {
+          setInFlightCount((c) => c - 1);
+        });
+        sseCleanupRef.current.get(id)?.();
+        sseCleanupRef.current.delete(id);
+      } else {
+        // Intermediate stage update — advance the run stages locally
+        setRequests((current) =>
+          current.map((r) => {
+            if (r.id !== id) return r;
+            return { ...r, run: advanceRun(r.run), updatedAt: new Date().toISOString() };
+          }),
+        );
+      }
+    });
+    sseCleanupRef.current.set(id, cleanup);
+  }, []);
+
+  const submitDraft = () => {
+    if (isMockMode) {
+      const generated = createSimulatedRequest(draft);
+      setRequests((current) => [generated, ...current]);
+      setSelectedId(generated.id);
+      scheduleProgress(generated.id);
+    } else {
+      setInFlightCount((c) => c + 1);
+      api.createRequest(draft).then(({ id, status, createdAt }) => {
+        const placeholder: DiligenceRequest = {
+          id,
+          title: draft.targetBrief.split(/[.!?\n]/)[0].trim().slice(0, 48),
+          status: status as DiligenceRequest['status'],
+          createdAt,
+          updatedAt: createdAt,
+          input: draft,
+          parsedHints: [],
+          run: [],
+        };
+        setRequests((current) => [placeholder, ...current]);
+        setSelectedId(id);
+        subscribeAndHydrate(id);
+      }).catch(() => {
+        setInFlightCount((c) => c - 1);
+      });
+    }
+  };
+
+  const deleteRequest = (id: string) => {
+    clearTimersForRequest(id);
+    sseCleanupRef.current.get(id)?.();
+    sseCleanupRef.current.delete(id);
+    setRequests((current) => {
+      const updated = current.filter((r) => r.id !== id);
+      if (id === selectedId) {
+        const idx = current.findIndex((r) => r.id === id);
+        const next = current[idx + 1] ?? current[idx - 1];
+        setSelectedId(next?.id ?? '');
+      }
+      return updated;
     });
   };
 
-  const submitDraft = () => {
-    const generated = createSimulatedRequest(draft);
-    setRequests((current) => [generated, ...current]);
-    setSelectedId(generated.id);
-    scheduleProgress(generated.id);
+  const retryRequest = (id: string) => {
+    const existing = requests.find((r) => r.id === id);
+    if (!existing) return;
+    if (isMockMode) {
+      const generated = createSimulatedRequest(existing.input);
+      setRequests((current) => [generated, ...current.filter((r) => r.id !== id)]);
+      setSelectedId(generated.id);
+      scheduleProgress(generated.id);
+    } else {
+      setInFlightCount((c) => c + 1);
+      api.createRequest(existing.input).then(({ id: newId, status, createdAt }) => {
+        const placeholder: DiligenceRequest = {
+          id: newId,
+          title: existing.title,
+          status: status as DiligenceRequest['status'],
+          createdAt,
+          updatedAt: createdAt,
+          input: existing.input,
+          parsedHints: existing.parsedHints,
+          run: [],
+        };
+        setRequests((current) => [placeholder, ...current.filter((r) => r.id !== id)]);
+        setSelectedId(newId);
+        subscribeAndHydrate(newId);
+      }).catch(() => {
+        setInFlightCount((c) => c - 1);
+      });
+    }
+  };
+
+  const redraft = (id: string, tone: Tone, channel: Channel) => {
+    const existing = requests.find((r) => r.id === id);
+    if (!existing) return;
+    if (isMockMode) {
+      const updatedInput: RequestInput = { ...existing.input, tone, preferredChannel: channel };
+      const generated = createSimulatedRequest(updatedInput);
+      setRequests((current) =>
+        current.map((r) => (r.id === id ? { ...generated, id, createdAt: r.createdAt } : r)),
+      );
+      scheduleProgress(id);
+    } else {
+      setInFlightCount((c) => c + 1);
+      setRequests((current) =>
+        current.map((r) => (r.id === id ? { ...r, status: 'running' as const, updatedAt: new Date().toISOString() } : r)),
+      );
+      api.redraftRequest(id, tone, channel).then(() => {
+        subscribeAndHydrate(id);
+      }).catch(() => {
+        setInFlightCount((c) => c - 1);
+      });
+    }
   };
 
   const loadExample = (key: 'pg' | 'a16z') => {
@@ -153,6 +325,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectRequest,
     submitDraft,
     loadExample,
+    deleteRequest,
+    retryRequest,
+    redraft,
+    isSubmitting,
+    isLoading,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
