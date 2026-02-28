@@ -41,3 +41,11 @@ Use `Map<string, number[]>` for timeout refs, not append-only arrays. Call `clea
 ## SSE → hydrate
 
 `subscribeAndHydrate(id)` pattern: subscribe to SSE, on terminal event fetch full entity, clean up EventSource.
+
+## SSE named events: always use addEventListener
+
+When a server emits named SSE events (`event: request.ready`), the browser's `source.onmessage` will NOT fire — it only catches unnamed events. Use `source.addEventListener('request.ready', handler)` for each expected event name. This was a P0 bug found during the merge-worktrees run.
+
+## Parallel worktree merge: use merge-tree for dry run
+
+Before merging, run `git merge-tree --write-tree branchA branchB` to preview conflicts without touching the working tree. This avoids wasted merge attempts.

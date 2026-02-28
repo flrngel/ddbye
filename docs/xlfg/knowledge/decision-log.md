@@ -43,3 +43,7 @@ Decided to use `!import.meta.env.VITE_API_BASE` as compile-time mock mode flag. 
 ## 2026-02-28: inFlightCount over boolean
 
 Replaced `isSubmitting: boolean` with `inFlightCount: number` to handle concurrent submissions without race conditions.
+
+## 2026-02-28: ESLint continue-on-error removed after merge
+
+After merging all 4 tracks, ESLint passes clean (0 errors). Removed `continue-on-error: true` from ESLint CI step. Kept it for Prettier (12 files still have violations). Run: 20260228-120000-merge-worktrees
