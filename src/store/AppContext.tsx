@@ -240,13 +240,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRequests((current) => [placeholder, ...current]);
         setSelectedId(id);
         subscribeAndHydrate(id);
-      }).catch(() => {
+      }).catch((err) => {
         setInFlightCount((c) => c - 1);
-        // Fallback to mock mode when API is unreachable
-        const generated = createSimulatedRequest(draft);
-        setRequests((current) => [generated, ...current]);
-        setSelectedId(generated.id);
-        scheduleProgress(generated.id);
+        console.error('[submitDraft] API error:', err);
       });
     }
   };
@@ -290,13 +286,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRequests((current) => [placeholder, ...current.filter((r) => r.id !== id)]);
         setSelectedId(newId);
         subscribeAndHydrate(newId);
-      }).catch(() => {
+      }).catch((err) => {
         setInFlightCount((c) => c - 1);
-        // Fallback to mock mode when API is unreachable
-        const generated = createSimulatedRequest(existing.input);
-        setRequests((current) => [generated, ...current.filter((r) => r.id !== id)]);
-        setSelectedId(generated.id);
-        scheduleProgress(generated.id);
+        console.error('[retryRequest] API error:', err);
       });
     }
   };
