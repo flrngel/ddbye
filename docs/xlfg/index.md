@@ -1,6 +1,6 @@
 # xlfg Knowledge Base
 
-Run logs and durable knowledge for Outreach OS development.
+Evidence-first software development lifecycle for Outreach OS.
 
 ## Structure
 
