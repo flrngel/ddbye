@@ -1,0 +1,24 @@
+{
+  "email": {
+    "title": "Email: respectful product wedge",
+    "summary": "Default channel when the goal is to open the door with a low-friction ask.",
+    "subjects": [
+      "A lightweight search mock for Hacker News",
+      "An idea for making old HN threads easier to retrieve"
+    ],
+    "body": "Hi Paul, ...",
+    "followUp": "Happy to send the one-page mock first."
+  },
+  "linkedin": {
+    "title": "LinkedIn DM",
+    "summary": "Shorter version.",
+    "body": "Hi Paul - ...",
+    "followUp": "Can send the one-page mock here if useful."
+  },
+  "x_dm": {
+    "title": "X DM",
+    "summary": "Shortest version.",
+    "body": "Hi Paul - ...",
+    "followUp": "Can send the mock if useful."
+  }
+}

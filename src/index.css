@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-rounded: 'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-lavender-50: #f5f3ff;
+  --color-brand-lavender-100: #ece8ff;
+  --color-brand-lavender-200: #d7cffc;
+  --color-brand-lavender-300: #b9aaf3;
+  --color-brand-lavender-500: #9b8be8;
+  --color-brand-lavender-600: #816fdb;
+
+  --color-brand-blue-100: #e5f2ff;
+  --color-brand-blue-200: #cfe8ff;
+  --color-brand-blue-500: #7bb8f7;
+  --color-brand-blue-600: #5aa7ef;
+  --color-brand-blue-700: #2877b7;
+
+  --color-neutral-50: #f8f9fc;
+  --color-neutral-100: #eef1f7;
+  --color-neutral-200: #dce2ed;
+  --color-neutral-300: #c6d0e0;
+  --color-neutral-400: #94a0b3;
+  --color-neutral-500: #66748a;
+  --color-neutral-600: #4f5b6f;
+  --color-neutral-700: #394558;
+  --color-neutral-800: #283243;
+  --color-neutral-900: #172033;
+}
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-neutral-50 font-sans text-neutral-900 antialiased;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(155, 139, 232, 0.24);
+  }
+}
