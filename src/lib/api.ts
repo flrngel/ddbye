@@ -47,14 +47,19 @@ export function subscribeToEvents(
 ): () => void {
   const base = getBase();
   const source = new EventSource(`${base}/requests/${encodeURIComponent(id)}/events`);
-  source.onmessage = (e) => {
+  const SSE_EVENTS = [
+    'request.parsing', 'request.resolved', 'request.researching',
+    'request.synthesized', 'request.drafted', 'request.ready', 'request.failed',
+  ];
+  const handler = (e: MessageEvent) => {
     try {
       const data = JSON.parse(e.data) as { type: string; payload: unknown };
-      onEvent(data);
+      onEvent({ ...data, type: data.type ?? e.type });
     } catch {
       // ignore malformed events
     }
   };
+  SSE_EVENTS.forEach((name) => source.addEventListener(name, handler as EventListener));
   return () => source.close();
 }
 
@@ -67,7 +72,7 @@ export async function redraftRequest(
   const res = await fetch(`${base}/requests/${encodeURIComponent(id)}/redraft`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tone, channel }),
+    body: JSON.stringify({ tone, preferredChannel: channel }),
   });
   if (!res.ok) throw new Error(`redraftRequest failed: ${res.status}`);
 }

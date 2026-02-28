@@ -25,12 +25,10 @@ jobs:
         run: npm run lint
 
       - name: ESLint
-        # Expected to fail until Track C fixes src/ issues
-        continue-on-error: true
         run: npm run lint:eslint
 
       - name: Format check
-        # Expected to fail until Track C fixes src/ issues
+        # Prettier violations remain in pre-existing src/ files
         continue-on-error: true
         run: npm run format:check
 
