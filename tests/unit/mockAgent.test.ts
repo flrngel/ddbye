@@ -44,9 +44,46 @@ describe('createSimulatedRequest', () => {
       expect(req.research?.person).not.toBe('Paul Graham');
     });
 
-    it('returns generic case for unrecognized brief', () => {
+    it('returns generic case for unrecognized brief — extracts person name', () => {
       const req = createSimulatedRequest(makeInput({ targetBrief: 'random unknown person' }));
-      expect(req.research?.person).toBe('Target to be resolved');
+      // Should NOT be "Target to be resolved" anymore
+      expect(req.research?.person).not.toContain('to be resolved');
+      expect(req.research?.person).toBeTruthy();
+    });
+
+    it('extracts "Derrick Cho" from a real brief', () => {
+      const req = createSimulatedRequest(makeInput({
+        targetBrief: 'Derrick Cho(flrngel). He writes many code.',
+        objective: 'Research the target, figure out the right angle of approach',
+        offer: 'We build hosted search(algolia)',
+      }));
+      expect(req.research?.person).toBe('Derrick Cho');
+      expect(req.parsedHints).not.toContain('Unresolved target');
+      expect(req.parsedHints.some(h => h.includes('Derrick Cho'))).toBe(true);
+    });
+
+    it('extracts "Jane Smith" from brief with extra context', () => {
+      const req = createSimulatedRequest(makeInput({
+        targetBrief: 'Jane Smith at Stripe. She runs developer experience.',
+      }));
+      expect(req.research?.person).toBe('Jane Smith');
+      expect(req.outreach?.email.body).toContain('Jane');
+      expect(req.parsedHints).not.toContain('Unresolved target');
+    });
+
+    it('never shows "Unresolved target" for any brief', () => {
+      const briefs = [
+        'someone I met at a conference',
+        'CEO of a startup in SF',
+        'John Lee, works at Google',
+        'my friend who does ML research',
+      ];
+      for (const brief of briefs) {
+        const req = createSimulatedRequest(makeInput({ targetBrief: brief }));
+        expect(req.parsedHints).not.toContain('Unresolved target');
+        expect(req.research?.person).not.toContain('to be resolved');
+        expect(req.research?.organization).not.toContain('to be resolved');
+      }
     });
   });
 

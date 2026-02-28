@@ -55,7 +55,17 @@ function inferHints(input: RequestInput): string[] {
   if (lower.includes('hacker news') || lower.includes('hn')) hints.push('Hacker News');
   if (lower.includes('andreessen') || lower.includes('a16z') || lower.includes('marc')) hints.push('Andreessen / a16z');
   if (lower.includes('sam keen') || lower.includes('altered craft')) hints.push('Sam Keen');
-  if (!hints.length) hints.push('Unresolved target');
+
+  // Dynamic fallback: extract person name from brief instead of showing "Unresolved target"
+  if (!hints.length) {
+    const person = extractPerson(input.targetBrief);
+    hints.push(person);
+  }
+
+  // Add goal type as a readable hint
+  const goalHint = input.goalType === 'fundraise' ? 'Investment fit' : input.goalType === 'partnership' ? 'Partnership' : input.goalType === 'sell' ? 'Sales' : input.goalType === 'hire' ? 'Recruiting' : 'Advice / intro';
+  hints.push(goalHint);
+
   hints.push(input.preferredChannel === 'x_dm' ? 'X DM' : input.preferredChannel === 'linkedin' ? 'LinkedIn DM' : 'Email');
   return hints;
 }
