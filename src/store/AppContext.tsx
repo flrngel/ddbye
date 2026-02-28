@@ -242,6 +242,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         subscribeAndHydrate(id);
       }).catch(() => {
         setInFlightCount((c) => c - 1);
+        // Fallback to mock mode when API is unreachable
+        const generated = createSimulatedRequest(draft);
+        setRequests((current) => [generated, ...current]);
+        setSelectedId(generated.id);
+        scheduleProgress(generated.id);
       });
     }
   };
@@ -287,6 +292,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         subscribeAndHydrate(newId);
       }).catch(() => {
         setInFlightCount((c) => c - 1);
+        // Fallback to mock mode when API is unreachable
+        const generated = createSimulatedRequest(existing.input);
+        setRequests((current) => [generated, ...current.filter((r) => r.id !== id)]);
+        setSelectedId(generated.id);
+        scheduleProgress(generated.id);
       });
     }
   };
