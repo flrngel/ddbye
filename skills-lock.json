@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "worktree-setup": {
+      "source": "flrngel/worktree-skill-plugin",
+      "sourceType": "github",
+      "computedHash": "2dd2701a8461e5c2168bc2bf85db31eb26b5b38f342fc1bd4c6e1d6c1859cac2"
+    }
+  }
+}
