@@ -14,24 +14,28 @@ export interface StepOptions {
   prompt: string;
   systemPrompt: string;
   schema: z.ZodType;
-  allowedTools?: string[];
+  /** Which built-in tools the model can use. Empty array disables all tools. */
+  tools?: string[];
 }
 
 export async function runStep<T>(options: StepOptions): Promise<T> {
-  const { prompt, systemPrompt, schema, allowedTools = [] } = options;
+  const { prompt, systemPrompt, schema, tools = [] } = options;
 
-  const jsonSchema = z.toJSONSchema(schema);
+  // Generate JSON schema and strip $schema annotation — the SDK rejects
+  // schemas with $schema and silently falls back to text output.
+  const jsonSchema = z.toJSONSchema(schema) as Record<string, unknown>;
+  delete jsonSchema["$schema"];
 
   try {
     for await (const message of query({
       prompt,
       options: {
         systemPrompt,
-        allowedTools,
-        // Required for headless worker operation. The allowedTools array
-        // constrains actual tool access (WebSearch/WebFetch only for research steps,
-        // empty for reasoning-only steps). The permission bypass only removes
-        // interactive approval prompts, not the tool allowlist.
+        // `tools` controls which built-in tools are available to the model.
+        // Empty array disables all tools. ["WebSearch", "WebFetch"] for web steps.
+        tools,
+        // Required for headless worker operation — removes interactive
+        // approval prompts without affecting the tools allowlist.
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         outputFormat: {
@@ -41,21 +45,27 @@ export async function runStep<T>(options: StepOptions): Promise<T> {
       },
     })) {
       if (message.type === "result") {
-        if (
-          message.subtype === "success" &&
-          message.structured_output != null
-        ) {
-          const parsed = schema.safeParse(message.structured_output);
-          if (parsed.success) {
-            return parsed.data as T;
+        if (message.subtype === "success") {
+          if (message.structured_output != null) {
+            const parsed = schema.safeParse(message.structured_output);
+            if (parsed.success) {
+              return parsed.data as T;
+            }
+            throw new AgentQueryError(
+              `Structured output failed validation: ${parsed.error.message}`,
+              { cause: parsed.error }
+            );
           }
           throw new AgentQueryError(
-            `Structured output failed validation: ${parsed.error.message}`,
-            { cause: parsed.error }
+            "Agent returned success but structured_output is empty. " +
+              "The JSON schema may be incompatible with the SDK."
           );
         }
+        // Handle specific error subtypes for better diagnostics
+        const errors =
+          "errors" in message ? (message.errors as string[]).join("; ") : "";
         throw new AgentQueryError(
-          `Agent step failed with subtype: ${message.subtype}`
+          `Agent step failed (${message.subtype}): ${errors}`
         );
       }
     }

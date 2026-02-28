@@ -96,27 +96,29 @@ export const SynthesisResultSchema = z.object({
 
 // --- Step 5: Draft ---
 
-const DeliverableSchema = z.object({
+const EmailDeliverableSchema = z.object({
   title: z.string(),
   summary: z.string(),
   subjects: z
     .array(z.string())
-    .optional()
-    .describe("Subject lines (required for email, omit for DMs)"),
+    .min(2)
+    .max(3)
+    .describe("2-3 email subject line options"),
+  body: z.string(),
+  followUp: z.string(),
+});
+
+const DmDeliverableSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
   body: z.string(),
   followUp: z.string(),
 });
 
 export const OutreachPacketSchema = z.object({
-  email: DeliverableSchema.extend({
-    subjects: z
-      .array(z.string())
-      .min(2)
-      .max(3)
-      .describe("2-3 email subject line options"),
-  }),
-  linkedin: DeliverableSchema,
-  x_dm: DeliverableSchema,
+  email: EmailDeliverableSchema,
+  linkedin: DmDeliverableSchema,
+  x_dm: DmDeliverableSchema,
 });
 
 // --- Step 6: Quality Gate ---

@@ -62,7 +62,7 @@ export async function stepParse(
     prompt: buildParsePrompt(input),
     systemPrompt: PARSE_SYSTEM_PROMPT,
     schema: ParsedJobSchema,
-    allowedTools: [],
+    tools: [],
   });
 
   // Default empty focuses to all
@@ -86,7 +86,7 @@ export async function stepResolve(
     prompt: buildResolvePrompt(job),
     systemPrompt: RESOLVE_SYSTEM_PROMPT,
     schema: ResolvedTargetSchema,
-    allowedTools: ["WebSearch", "WebFetch"],
+    tools: ["WebSearch", "WebFetch"],
   });
 
   if (!result.surface) {
@@ -120,7 +120,7 @@ export async function stepResearch(
     prompt: buildResearchPrompt(job, target),
     systemPrompt: RESEARCH_SYSTEM_PROMPT,
     schema: ResearchContextSchema,
-    allowedTools: ["WebSearch", "WebFetch"],
+    tools: ["WebSearch", "WebFetch"],
   });
 
   safeProgress(onProgress, {
@@ -145,7 +145,7 @@ export async function stepSynthesize(
     prompt: buildSynthesizePrompt(job, target, research),
     systemPrompt: SYNTHESIZE_SYSTEM_PROMPT,
     schema: SynthesisResultSchema,
-    allowedTools: [],
+    tools: [],
   });
 
   // Truncate whyThisTarget to max 3
@@ -171,7 +171,7 @@ export async function stepDraft(
     prompt: buildDraftPrompt(job, target, synthesis),
     systemPrompt: DRAFT_SYSTEM_PROMPT,
     schema: OutreachPacketSchema,
-    allowedTools: [],
+    tools: [],
   });
 
   return result;
@@ -191,7 +191,7 @@ export async function stepQualityGate(
     prompt: buildQualityGatePrompt(outreach, evidence),
     systemPrompt: QUALITY_GATE_SYSTEM_PROMPT,
     schema: QualityGateResultSchema,
-    allowedTools: [],
+    tools: [],
   });
 
   if (gateResult.passed) {
@@ -213,7 +213,7 @@ ${violationList}
 Fix ALL of the above violations in this new draft. Do not introduce new violations.`,
     systemPrompt: DRAFT_SYSTEM_PROMPT,
     schema: OutreachPacketSchema,
-    allowedTools: [],
+    tools: [],
   });
 
   // One retry maximum — do not loop
