@@ -244,7 +244,7 @@ export default function ConsolePage() {
                 <div>
                   <FieldLabel
                     title="1. Who or what do you want to investigate?"
-                    hint="Messy is fine. Example: ‘yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news와 비즈니스를 하고싶음.’"
+                    hint="Messy is fine. Example: ‘PG, famous for YC — want to explore doing business with Hacker News.’"
                   />
                   <Textarea
                     value={draft.targetBrief}

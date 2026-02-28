@@ -9,9 +9,9 @@ export const seededCases: DiligenceRequest[] = [
     updatedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
     input: {
       targetBrief:
-        'yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news와 비즈니스를 하고싶음. 검색 경험이 어떤 식으로 개선될 수 있는지 보고 싶음.',
+        'PG, famous for YC — want to explore doing business with Hacker News, one of the things he built. Curious how the search experience could be improved.',
       objective:
-        'Hacker News의 검색/탐색 문제를 명분 있게 짚고, 우리 검색 제품을 너무 공격적이지 않게 제안하고 싶다.',
+        'Legitimately highlight the search/discovery problem on Hacker News and propose our search product without being too aggressive.',
       offer:
         'We build hosted search that can be embedded quickly, with ranking controls, analytics, and a lightweight implementation path.',
       preferredChannel: 'email',
@@ -146,9 +146,9 @@ export const seededCases: DiligenceRequest[] = [
     updatedAt: new Date(Date.now() - 1000 * 60 * 85).toISOString(),
     input: {
       targetBrief:
-        'a16z의 andreessen을 투자 타겟으로 보고 싶음. 우리 회사가 왜 이 사람/이 펀드 관점에서 봤을 때 worth looking at 인지 정리하고 싶다.',
+        'Want to look at Andreessen from a16z as an investment target. Need to lay out why we\'re worth looking at from his/the fund\'s perspective.',
       objective:
-        '투자 요청 메시지를 generic하게 쓰는 게 아니라 thesis fit 중심으로 짧고 강하게 만들고 싶다.',
+        'Don\'t write a generic fundraising message — make it short and punchy, centered on thesis fit.',
       offer:
         'We are building workflow software for operators in AI-native support teams, with strong retention and a wedge around quality review + automation.',
       preferredChannel: 'email',

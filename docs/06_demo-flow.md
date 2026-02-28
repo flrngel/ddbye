@@ -10,7 +10,7 @@ Show that the product starts from a fuzzy human brief and ends with a defensible
 
 Open the console and paste a brief like:
 
-"yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news와 비즈니스를 하고싶음. 검색 쪽으로 wedge가 있는지 보고 싶다."
+"PG, famous for YC — want to explore doing business with Hacker News, one of the things he built. Wondering if there's a wedge around search."
 
 ### Step 2
 

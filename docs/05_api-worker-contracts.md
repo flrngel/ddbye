@@ -27,8 +27,8 @@ Payload:
 
 ```json
 {
-  "targetBrief": "yc로 유명한 pg인데...",
-  "objective": "Hacker News와 비즈니스 angle을 찾고 싶음",
+  "targetBrief": "PG, famous for YC — want to explore doing business with Hacker News...",
+  "objective": "Find a business angle with Hacker News",
   "offer": "We build hosted search...",
   "preferredChannel": "email",
   "tone": "respectful",

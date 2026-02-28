@@ -65,7 +65,7 @@ Track B delivers that worker: a standalone TypeScript module that runs the full 
 ### Step 2 — Resolve target (B4)
 
 - [ ] The worker produces a resolved target with `person`, `organization`, and `surface` string fields.
-- [ ] Given the PG/Hacker News brief (`"yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news…"`), the resolved `surface` must reference Hacker News specifically, not YC or Y Combinator broadly.
+- [ ] Given the PG/Hacker News brief (`"PG, famous for YC — want to explore doing business with Hacker News…"`), the resolved `surface` must reference Hacker News specifically, not YC or Y Combinator broadly.
 - [ ] If the agent cannot determine any of the three fields with reasonable confidence, it sets the field to `""` (empty string) rather than hallucinating a name.
 - [ ] Copy generation (steps 5 and 6) must not begin until this step completes with a non-empty `surface`. If `surface` remains empty after resolve, `runDiligence` throws `UnresolvableTargetError`.
 - [ ] `onProgress` is called with `{ stage: "resolve", status: "running" }` before and `{ stage: "resolve", status: "done" }` after.

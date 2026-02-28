@@ -88,8 +88,7 @@ export default function Landing() {
               <div className="mt-5 rounded-[24px] border border-white bg-white p-4 shadow-sm">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">Intake</div>
                 <div className="mt-3 rounded-3xl border border-brand-lavender-100 bg-gradient-to-br from-brand-lavender-50 to-white p-4 text-sm leading-7 text-neutral-700">
-                  “yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news와 비즈니스를 하고싶음. 검색/아카이브 탐색 쪽으로
-                  접근 가능한지 보고 싶다.”
+                  “PG, famous for YC — want to explore doing business with Hacker News. Wondering if there's a wedge around search / archive browsing.”
                 </div>
               </div>
 

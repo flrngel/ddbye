@@ -30,9 +30,9 @@ const AppContext = createContext<AppContextValue | null>(null);
 function createPGDraft(): DraftInput {
   return {
     targetBrief:
-      'yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news와 비즈니스를 하고싶음. 검색이나 오래된 글 탐색 쪽에 wedge가 있는지 보고 싶다.',
+      'PG, famous for YC — want to explore doing business with Hacker News, one of the things he built. Wondering if there\'s a wedge around search or browsing old posts.',
     objective:
-      '대상을 조사해서 어떤 명분으로 접근해야 할지 정리하고, 결국 email/DM으로 보낼 수 있는 outreach를 만들고 싶다.',
+      'Research the target, figure out the right angle of approach, and ultimately craft outreach I can send via email/DM.',
     offer:
       'We build hosted search that can be embedded quickly, with ranking controls, analytics, and a lightweight implementation path.',
     preferredChannel: 'email',
@@ -45,9 +45,9 @@ function createPGDraft(): DraftInput {
 function createA16zDraft(): DraftInput {
   return {
     targetBrief:
-      'a16z의 andreessen을 투자 타겟으로 보고 싶음. 이 사람/이 펀드 관점에서 왜 worth looking at 인지부터 정리하고 싶다.',
+      'Want to look at Andreessen from a16z as an investment target. Need to first lay out why we\'re worth looking at from his/the fund\'s perspective.',
     objective:
-      '우리 회사를 generic하게 pitch하지 말고, 어떤 thesis-fit으로 접근해야 하는지 조사 후 메시지로 정리하고 싶다.',
+      'Don\'t pitch our company generically — research what thesis-fit angle to take, then distill it into a message.',
     offer:
       'We are building workflow software for AI-native support teams, with strong retention and a wedge around quality review + automation.',
     preferredChannel: 'email',

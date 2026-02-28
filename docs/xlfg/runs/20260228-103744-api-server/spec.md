@@ -282,8 +282,8 @@ POST /requests
 Content-Type: application/json
 
 {
-  "targetBrief": "yc로 유명한 pg인데 그가 만든 서비스 중 하나인 hacker news와 비즈니스를 하고싶음",
-  "objective": "검색이나 아카이브 탐색 쪽으로 business wedge를 찾고 싶다",
+  "targetBrief": "PG, famous for YC — want to explore doing business with Hacker News, one of the things he built",
+  "objective": "Find a business wedge around search or archive browsing",
   "offer": "We build hosted search that can be embedded quickly, with ranking controls and analytics.",
   "preferredChannel": "email",
   "tone": "respectful",
