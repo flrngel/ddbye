@@ -9,9 +9,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.63",
     "@hono/node-server": "^1.14.1",
     "better-sqlite3": "^11.8.1",
-    "hono": "^4.7.5"
+    "hono": "^4.7.5",
+    "zod": "^4.3.6",
+    "@ddbye/worker": "file:../worker"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

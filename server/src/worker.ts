@@ -1,18 +1,18 @@
 import { getRequest, upsertRequest } from './db.js';
 import { emit } from './sse.js';
-import { stubResearch, stubOutreach } from './stubs.js';
-import type { DiligenceRequest, RequestStatus, RunStage } from './types.js';
+import type { DiligenceRequest, RunStage } from './types.js';
 
-const STAGE_MAP: { status: RequestStatus; event: string; stageKey?: RunStage['key'] }[] = [
-  { status: 'parsing', event: 'request.parsing', stageKey: 'parse' },
-  { status: 'resolving', event: 'request.resolved', stageKey: 'resolve' },
-  { status: 'researching', event: 'request.researching', stageKey: 'research' },
-  { status: 'synthesizing', event: 'request.synthesized', stageKey: 'synthesize' },
-  { status: 'drafting', event: 'request.drafted', stageKey: 'draft' },
-  { status: 'ready', event: 'request.ready' },
-];
+// Import real worker pipeline
+import { runDiligence } from '@ddbye/worker';
+import type { ProgressEvent } from '@ddbye/worker';
 
-const DELAYS = [1000, 1200, 1500, 2000, 1800, 1000]; // ms per stage transition
+const STAGE_TO_EVENT: Record<string, string> = {
+  parse: 'request.parsing',
+  resolve: 'request.resolved',
+  research: 'request.researching',
+  synthesize: 'request.synthesized',
+  draft: 'request.drafted',
+};
 
 function makeDefaultRun(): RunStage[] {
   return [
@@ -25,115 +25,119 @@ function makeDefaultRun(): RunStage[] {
 }
 
 /**
- * Dispatch a full worker pipeline for a newly created request.
- * Advances the request through all lifecycle stages using setTimeout chains.
- *
- * @param id - The request ID (e.g., "req_k3m9x2")
- *
- * Track B should replace this stub with a real Claude Agent SDK call that:
- * 1. Parses the brief to extract entities and intent
- * 2. Resolves the target identity via web search
- * 3. Researches the target using WebSearch/WebFetch
- * 4. Synthesizes findings into a ResearchPacket
- * 5. Drafts channel-specific outreach copy
- * 6. Runs a quality gate before marking ready
+ * Dispatch the REAL Claude Agent SDK worker pipeline.
+ * Calls runDiligence() which uses WebSearch/WebFetch to research the target.
  */
 export function dispatchWorker(id: string): void {
-  // TODO Track B: replace with real Claude Agent SDK call
-  let step = 0;
+  const req = getRequest(id);
+  if (!req) return;
 
-  function advance() {
-    if (step >= STAGE_MAP.length) return;
+  // Start async pipeline (fire-and-forget, progress via SSE)
+  runRealPipeline(id, req).catch((err) => {
+    console.error(`[worker] Pipeline failed for ${id}:`, err);
+    const failReq = getRequest(id);
+    if (failReq) {
+      failReq.status = 'failed';
+      failReq.updatedAt = new Date().toISOString();
+      upsertRequest(failReq);
+      emit(id, 'request.failed', { id, status: 'failed', error: String(err) });
+    }
+  });
+}
 
-    const req = getRequest(id);
-    if (!req) return;
+async function runRealPipeline(id: string, req: DiligenceRequest): Promise<void> {
+  const result = await runDiligence(req.input, (event: ProgressEvent) => {
+    const current = getRequest(id);
+    if (!current) return;
 
-    const stage = STAGE_MAP[step];
-    req.status = stage.status;
-    req.updatedAt = new Date().toISOString();
+    // Map worker progress to server status + SSE events
+    const stageKey = event.stage;
+    const eventName = STAGE_TO_EVENT[stageKey];
 
-    // Update run stage statuses
-    if (stage.stageKey) {
-      for (const s of req.run) {
-        if (s.key === stage.stageKey) {
+    if (event.status === 'running') {
+      // Update run stages
+      for (const s of current.run) {
+        if (s.key === stageKey) {
           s.status = 'running';
+          if (event.detail) s.detail = event.detail;
         }
       }
       // Mark previous stages as done
       const keys: RunStage['key'][] = ['parse', 'resolve', 'research', 'synthesize', 'draft'];
-      const idx = keys.indexOf(stage.stageKey);
+      const idx = keys.indexOf(stageKey as RunStage['key']);
       for (let i = 0; i < idx; i++) {
-        const prev = req.run.find((s) => s.key === keys[i]);
+        const prev = current.run.find((s) => s.key === keys[i]);
         if (prev) prev.status = 'done';
       }
-    }
 
-    // Populate data at specific stages
-    if (stage.status === 'parsing') {
-      req.title = req.input.targetBrief.slice(0, 40);
-      req.parsedHints = ['target', 'outreach'];
-    }
-    if (stage.status === 'resolving') {
-      req.parsedHints = ['PG', 'Hacker News', 'search'];
-      req.title = 'Paul Graham / Hacker News';
-    }
-    if (stage.status === 'synthesizing') {
-      req.research = stubResearch;
-    }
-    if (stage.status === 'drafting') {
-      req.outreach = stubOutreach;
-    }
-    if (stage.status === 'ready') {
-      for (const s of req.run) {
-        s.status = 'done';
+      // Map to server status
+      const statusMap: Record<string, DiligenceRequest['status']> = {
+        parse: 'parsing',
+        resolve: 'resolving',
+        research: 'researching',
+        synthesize: 'synthesizing',
+        draft: 'drafting',
+      };
+      current.status = statusMap[stageKey] || current.status;
+      current.updatedAt = new Date().toISOString();
+
+      // Extract title from brief on parse stage
+      if (stageKey === 'parse') {
+        current.title = current.input.targetBrief.slice(0, 40);
+        current.parsedHints = ['target', 'outreach'];
+      }
+
+      upsertRequest(current);
+      if (eventName) {
+        emit(id, eventName, { id, status: current.status });
       }
     }
 
-    upsertRequest(req);
-
-    // Build SSE event data
-    const eventData: Record<string, unknown> = { id: req.id, status: req.status };
-    if (stage.status === 'resolving') eventData.parsedHints = req.parsedHints;
-    if (stage.status === 'synthesizing') eventData.research = req.research;
-    if (stage.status === 'drafting') eventData.outreach = req.outreach;
-
-    emit(id, stage.event, eventData);
-
-    step++;
-    if (step < STAGE_MAP.length) {
-      setTimeout(advance, DELAYS[step]);
+    if (event.status === 'done') {
+      const done = getRequest(id);
+      if (!done) return;
+      const stage = done.run.find((s) => s.key === stageKey);
+      if (stage) {
+        stage.status = 'done';
+        if (event.detail) stage.detail = event.detail;
+      }
+      upsertRequest(done);
     }
+  });
+
+  // Pipeline complete — populate final data
+  const final = getRequest(id);
+  if (!final) return;
+
+  final.status = 'ready';
+  final.updatedAt = new Date().toISOString();
+  final.research = result.research;
+  final.outreach = result.outreach;
+  final.parsedHints = [
+    result.research.person,
+    result.research.organization,
+    final.input.preferredChannel === 'x_dm' ? 'X DM' : final.input.preferredChannel === 'linkedin' ? 'LinkedIn DM' : 'Email',
+  ];
+  final.title = `${result.research.person} / ${result.research.organization}`;
+
+  for (const s of final.run) {
+    s.status = 'done';
   }
 
-  setTimeout(advance, DELAYS[0]);
+  upsertRequest(final);
+
+  // Send synthesized + drafted + ready events with data
+  emit(id, 'request.synthesized', { id, status: 'synthesizing', research: final.research });
+  emit(id, 'request.drafted', { id, status: 'drafting', outreach: final.outreach });
+  emit(id, 'request.ready', { id, status: 'ready' });
 }
 
 /**
  * Dispatch only the draft step for a redraft operation.
- * Called when the user changes tone or channel on a completed request.
- *
- * @param id - The request ID to redraft
- *
- * Track B should replace this with a targeted re-run of only the draft stage
- * using the updated tone/channel from the request input.
+ * For now, re-runs the full pipeline (hackathon shortcut).
  */
 export function dispatchDraftStep(id: string): void {
-  // TODO Track B: replace with real Claude Agent SDK call
-  setTimeout(() => {
-    const req = getRequest(id);
-    if (!req) return;
-
-    req.status = 'ready';
-    req.updatedAt = new Date().toISOString();
-    req.outreach = stubOutreach;
-
-    for (const s of req.run) {
-      s.status = 'done';
-    }
-
-    upsertRequest(req);
-    emit(id, 'request.ready', { id: req.id, status: 'ready' });
-  }, 2000);
+  dispatchWorker(id);
 }
 
 export { makeDefaultRun };
