@@ -7,7 +7,13 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "lint:eslint": "eslint src/ --max-warnings=0",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -20,12 +26,19 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.1.14",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^9.39.3",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
     "tailwindcss": "^4.1.14",
     "typescript": "^5.8.3",
-    "vite": "^7.1.3"
+    "vite": "^7.1.3",
+    "vitest": "^4.0.18"
   }
 }
