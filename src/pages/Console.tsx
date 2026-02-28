@@ -1,17 +1,22 @@
 import { useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Check,
   Clipboard,
   FileText,
   Link2,
+  Loader2,
   Mail,
   MessageSquare,
+  RefreshCw,
   SearchCheck,
   Sparkles,
   Target,
+  Trash2,
   UserRoundSearch,
+  X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SectionCard } from '@/components/SectionCard';
@@ -22,7 +27,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/time';
 import { channelOptions, focusOptions, goalOptions, toneOptions, useApp } from '@/store/AppContext';
-import type { Channel, Deliverable, RunStage } from '@/types';
+import type { Channel, Deliverable, RunStage, Tone } from '@/types';
 
 function FieldLabel({ title, hint }: { title: string; hint?: string }) {
   return (
@@ -119,8 +124,11 @@ function renderDeliverable(channel: Channel, deliverable: Deliverable) {
 }
 
 export default function ConsolePage() {
-  const { requests, selectedId, selectedRequest, draft, updateDraftField, toggleFocus, selectRequest, submitDraft, loadExample } = useApp();
+  const { requests, selectedId, selectedRequest, draft, updateDraftField, toggleFocus, selectRequest, submitDraft, loadExample, deleteRequest, retryRequest, redraft, isSubmitting, isLoading } = useApp();
   const [outputChannel, setOutputChannel] = useState<Channel>('email');
+  const [showRedraft, setShowRedraft] = useState(false);
+  const [redraftTone, setRedraftTone] = useState<Tone>('respectful');
+  const [redraftChannel, setRedraftChannel] = useState<Channel>('email');
 
   const deliverable = useMemo(() => {
     if (!selectedRequest?.outreach) return undefined;
@@ -166,32 +174,54 @@ export default function ConsolePage() {
           </div>
 
           <div className="mt-3 space-y-3">
-            {requests.map((request) => {
-              const active = request.id === selectedId;
-              const channelLabel = request.input.preferredChannel === 'linkedin' ? 'LinkedIn' : request.input.preferredChannel === 'x_dm' ? 'X DM' : 'Email';
-              return (
-                <button
-                  key={request.id}
-                  onClick={() => selectRequest(request.id)}
-                  className={cn(
-                    'w-full rounded-[26px] border p-4 text-left transition-all',
-                    active
-                      ? 'border-brand-lavender-300 bg-brand-lavender-50/85 shadow-[0_18px_45px_-28px_rgba(75,85,150,0.5)]'
-                      : 'border-white/70 bg-white/75 hover:border-brand-blue-200 hover:bg-white/95',
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="font-rounded text-sm font-bold leading-6 text-neutral-900">{request.title}</div>
-                    <Badge variant={request.status === 'ready' ? 'ready' : 'running'}>{request.status}</Badge>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="rounded-[26px] border border-dashed border-neutral-300 bg-neutral-50/70 p-5 text-center">
+                <p className="text-sm leading-6 text-neutral-500">No requests yet. Write a brief and run your first due diligence.</p>
+              </div>
+            ) : (
+              requests.map((request) => {
+                const active = request.id === selectedId;
+                const channelLabel = request.input.preferredChannel === 'linkedin' ? 'LinkedIn' : request.input.preferredChannel === 'x_dm' ? 'X DM' : 'Email';
+                return (
+                  <div key={request.id} className="group relative">
+                    <button
+                      onClick={() => selectRequest(request.id)}
+                      className={cn(
+                        'w-full rounded-[26px] border p-4 text-left transition-all',
+                        active
+                          ? 'border-brand-lavender-300 bg-brand-lavender-50/85 shadow-[0_18px_45px_-28px_rgba(75,85,150,0.5)]'
+                          : 'border-white/70 bg-white/75 hover:border-brand-blue-200 hover:bg-white/95',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 font-rounded text-sm font-bold leading-6 text-neutral-900">{request.title}</div>
+                        <Badge variant={request.status === 'ready' ? 'ready' : request.status === 'failed' ? 'failed' : 'running'}>
+                          {request.status === 'running'
+                            ? (request.run.find((s) => s.status === 'running')?.label ?? 'queued')
+                            : request.status}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-xs leading-5 text-neutral-500">{request.parsedHints.join(' • ')}</div>
+                      <div className="mt-3 flex items-center justify-between text-xs text-neutral-500">
+                        <span>{channelLabel}</span>
+                        <span title={request.updatedAt}>{formatRelativeTime(request.updatedAt)}</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteRequest(request.id); }}
+                      className="absolute right-3 top-3 rounded-xl p-1.5 text-neutral-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                      aria-label="Delete request"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="mt-2 text-xs leading-5 text-neutral-500">{request.parsedHints.join(' • ')}</div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-neutral-500">
-                    <span>{channelLabel}</span>
-                    <span title={request.updatedAt}>{formatRelativeTime(request.updatedAt)}</span>
-                  </div>
-                </button>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </aside>
 
@@ -344,9 +374,17 @@ export default function ConsolePage() {
                     The agent should resolve the target, research the context, choose a wedge, then write title + outreach. Copy comes last.
                   </p>
                 </div>
-                <Button onClick={submitDraft} className="gap-2">
-                  Run due diligence
-                  <ArrowRight className="h-4 w-4" />
+                <Button onClick={submitDraft} disabled={isSubmitting} className="gap-2">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Running...
+                    </>
+                  ) : (
+                    <>
+                      Run due diligence
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             </SectionCard>
@@ -360,6 +398,19 @@ export default function ConsolePage() {
                 >
                   {selectedRequest ? (
                     <div className="space-y-5">
+                      {selectedRequest.status === 'failed' && (
+                        <div role="alert" className="rounded-[24px] border border-red-200 bg-red-50 p-5">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-red-700">
+                            <AlertTriangle className="h-4 w-4" /> Run failed
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-red-700/80">
+                            {selectedRequest.errorMessage ?? 'The run failed. You can retry with the same brief.'}
+                          </p>
+                          <Button variant="secondary" size="sm" className="mt-3 gap-2" onClick={() => retryRequest(selectedRequest.id)}>
+                            <RefreshCw className="h-4 w-4" /> Retry
+                          </Button>
+                        </div>
+                      )}
                       <div className="grid gap-3 md:grid-cols-3">
                         <div className="rounded-[24px] border border-brand-blue-100 bg-brand-blue-100/45 p-4">
                           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-blue-700">
@@ -474,8 +525,8 @@ export default function ConsolePage() {
                       </SectionCard>
                     </div>
                   ) : (
-                    <div className="rounded-[28px] border border-dashed border-neutral-300 bg-neutral-50/70 p-8 text-sm text-neutral-500">
-                      Start a brief to populate the research board.
+                    <div className="rounded-[28px] border border-dashed border-neutral-300 bg-neutral-50/70 p-8 text-center text-sm text-neutral-500">
+                      Submit a brief above to start your first due diligence run.
                     </div>
                   )}
                 </SectionCard>
@@ -534,10 +585,91 @@ export default function ConsolePage() {
                       </div>
                     </div>
                   ) : deliverable ? (
-                    renderDeliverable(outputChannel, deliverable)
+                    <div className="space-y-4">
+                      {selectedRequest?.status === 'ready' && !showRedraft && (
+                        <div className="flex justify-end">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => {
+                              setRedraftTone(selectedRequest.input.tone);
+                              setRedraftChannel(selectedRequest.input.preferredChannel);
+                              setShowRedraft(true);
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4" /> Redraft
+                          </Button>
+                        </div>
+                      )}
+                      {showRedraft && selectedRequest && (
+                        <div className="rounded-[24px] border border-brand-lavender-100 bg-gradient-to-br from-brand-lavender-50 to-white p-4">
+                          <div className="font-rounded text-sm font-bold text-neutral-900">Redraft with different settings</div>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <div className="mb-1.5 text-xs font-semibold text-neutral-500">Tone</div>
+                              <div className="flex flex-wrap gap-2 rounded-[24px] border border-white/80 bg-brand-blue-100/35 p-2">
+                                {toneOptions.map((option) => (
+                                  <button
+                                    key={option.value}
+                                    onClick={() => setRedraftTone(option.value)}
+                                    className={cn(
+                                      'rounded-2xl px-3 py-1.5 text-sm font-semibold transition-all',
+                                      redraftTone === option.value
+                                        ? 'bg-white text-neutral-900 shadow-sm'
+                                        : 'text-neutral-500 hover:bg-white/60 hover:text-neutral-900',
+                                    )}
+                                  >
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="mb-1.5 text-xs font-semibold text-neutral-500">Channel</div>
+                              <div className="flex flex-wrap gap-2 rounded-[24px] border border-white/80 bg-brand-blue-100/35 p-2">
+                                {channelOptions.map((option) => (
+                                  <button
+                                    key={option.value}
+                                    onClick={() => setRedraftChannel(option.value)}
+                                    className={cn(
+                                      'rounded-2xl px-3 py-1.5 text-sm font-semibold transition-all',
+                                      redraftChannel === option.value
+                                        ? 'bg-white text-neutral-900 shadow-sm'
+                                        : 'text-neutral-500 hover:bg-white/60 hover:text-neutral-900',
+                                    )}
+                                  >
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-center gap-3">
+                            <Button
+                              size="sm"
+                              className="gap-2"
+                              onClick={() => {
+                                redraft(selectedRequest.id, redraftTone, redraftChannel);
+                                setShowRedraft(false);
+                              }}
+                            >
+                              Generate
+                            </Button>
+                            <button
+                              onClick={() => setShowRedraft(false)}
+                              className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700"
+                            >
+                              <X className="h-3.5 w-3.5" /> Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {renderDeliverable(outputChannel, deliverable)}
+                    </div>
                   ) : (
-                    <div className="rounded-[28px] border border-dashed border-neutral-300 bg-neutral-50/70 p-8 text-sm text-neutral-500">
-                      Pick a request to inspect the outreach output.
+                    <div className="rounded-[28px] border border-dashed border-neutral-300 bg-neutral-50/70 p-8 text-center text-sm text-neutral-500">
+                      Outreach copy will appear here once the research is done.
                     </div>
                   )}
                 </SectionCard>

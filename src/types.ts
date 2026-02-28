@@ -8,7 +8,7 @@ export type ResearchFocus =
   | 'recent_signals'
   | 'objections';
 
-export type RequestStatus = 'running' | 'ready';
+export type RequestStatus = 'running' | 'ready' | 'failed';
 export type RunStageStatus = 'queued' | 'running' | 'done';
 
 export interface RequestInput {
@@ -82,6 +82,7 @@ export interface DiligenceRequest {
   input: RequestInput;
   parsedHints: string[];
   run: RunStage[];
+  errorMessage?: string;
   research?: ResearchPacket;
   outreach?: OutreachPacket;
 }
