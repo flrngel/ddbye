@@ -253,4 +253,131 @@ export const seededCases: DiligenceRequest[] = [
       },
     },
   },
+  {
+    id: 'seed-sam-keen',
+    title: 'Sam Keen / Altered Craft / Newsletter coverage',
+    status: 'ready',
+    createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+    input: {
+      targetBrief:
+        'Sam Keen in Portland. He\'s an AI hackathon judge.',
+      objective:
+        'I want him to write about Algolia posts on his altered craft newsletter.',
+      offer: 'cookies and red bulls',
+      preferredChannel: 'email',
+      tone: 'warm',
+      goalType: 'partnership',
+      focuses: ['person_background', 'recent_signals'],
+    },
+    parsedHints: ['Sam Keen', 'Portland', 'AI hackathon judge', 'Altered Craft newsletter', 'email'],
+    run: [
+      { key: 'parse', label: 'Parsing brief', detail: 'Extract the person, newsletter surface, and coverage ask.', status: 'done' },
+      { key: 'resolve', label: 'Resolving target', detail: 'Confirm Sam Keen\'s identity, Portland AI scene presence, and newsletter details.', status: 'done' },
+      { key: 'research', label: 'Researching context', detail: 'Map the newsletter audience, recent topics, and what kind of coverage pitch would land.', status: 'done' },
+      { key: 'synthesize', label: 'Finding the wedge', detail: 'Find the angle that makes Algolia content relevant to Altered Craft readers.', status: 'done' },
+      { key: 'draft', label: 'Writing outreach', detail: 'Write a casual, Portland-friendly pitch for newsletter coverage.', status: 'done' },
+    ],
+    research: {
+      person: 'Sam Keen',
+      organization: 'Altered Craft newsletter',
+      surface: 'Newsletter coverage of Algolia content / AI search posts',
+      summary:
+        'Sam Keen is active in the Portland AI and tech community, known for judging AI hackathons and writing the Altered Craft newsletter. The ask is straightforward: get him to cover or feature Algolia-related posts in his newsletter. The wedge is making the content relevant to his audience rather than just asking for a favor.',
+      whyThisTarget: [
+        'Sam Keen writes Altered Craft, a newsletter that covers AI and tech topics — Algolia content on AI-powered search fits naturally.',
+        'He is embedded in the Portland AI hackathon scene, which means he values builder-oriented content over marketing fluff.',
+        'A casual, in-person-friendly approach works better than a formal media pitch for someone in this community.',
+      ],
+      contextCards: [
+        {
+          title: 'Who is Sam Keen',
+          body: 'Portland-based AI community figure who judges hackathons and writes the Altered Craft newsletter covering AI and tech topics.',
+          bullets: [
+            'Active in Portland AI/tech meetup and hackathon scene.',
+            'Writes Altered Craft — a newsletter with a builder/practitioner audience.',
+            'Judges AI hackathons, meaning he values practical demos over slide decks.',
+          ],
+        },
+        {
+          title: 'What makes the pitch land',
+          body: 'The pitch needs to frame Algolia content as genuinely useful to his readers, not as a sponsored plug.',
+          bullets: [
+            'Algolia posts about AI-powered search are relevant to his AI-practitioner audience.',
+            'Frame it as sharing useful content, not asking for a media placement.',
+            'Keep it casual — Portland tech scene runs on personal relationships and good vibes.',
+          ],
+        },
+      ],
+      recommendedAngle: {
+        headline: 'Pitch the content as useful to his readers, not as a favor to you.',
+        rationale:
+          'Newsletter writers care about keeping their audience engaged. If Algolia content genuinely helps Altered Craft readers understand AI search better, the pitch writes itself. Add cookies and Red Bulls as a memorable, low-pressure sweetener.',
+        mention: [
+          'Algolia has been publishing posts on AI-powered search that overlap with what Altered Craft covers.',
+          'Offer to point him to the most relevant pieces rather than dumping a list.',
+          'The cookies and Red Bulls make the ask feel human and hackathon-coded rather than corporate.',
+        ],
+        avoid: [
+          'Do not make it sound like a formal PR pitch.',
+          'Do not over-explain Algolia — he likely already knows the product.',
+          'Do not ask for guaranteed coverage — ask if the content is useful for his readers.',
+        ],
+      },
+      evidence: [
+        {
+          id: 'sk-1',
+          claim: 'Sam Keen is a Portland-based AI hackathon judge who writes the Altered Craft newsletter.',
+          sourceType: 'User brief',
+          sourceLabel: 'Target brief',
+          confidence: 'High',
+          usedFor: 'Resolve the target and understand the ask.',
+        },
+        {
+          id: 'sk-2',
+          claim: 'The objective is newsletter coverage of Algolia posts, not a sales pitch or partnership deal.',
+          sourceType: 'User brief',
+          sourceLabel: 'Objective',
+          confidence: 'High',
+          usedFor: 'Keep the outreach focused on content sharing, not business development.',
+        },
+        {
+          id: 'sk-3',
+          claim: 'Portland AI community is tight-knit and values casual, genuine interactions over formal pitches.',
+          sourceType: 'Inference',
+          sourceLabel: 'Community context',
+          confidence: 'Medium',
+          usedFor: 'Set the right tone — casual, builder-to-builder.',
+        },
+      ],
+    },
+    outreach: {
+      email: {
+        title: 'Email: casual newsletter coverage pitch',
+        summary: 'Friendly, Portland-coded pitch that frames Algolia content as useful for Altered Craft readers.',
+        subjects: [
+          'Some AI search content that might fit Altered Craft',
+          'Quick idea for your newsletter — AI-powered search stuff',
+          'Cookies, Red Bulls, and a content idea for Altered Craft',
+        ],
+        body: `Hey Sam,\n\nI have been reading Altered Craft and really like how you cover the practical side of AI tooling. I think some of the recent Algolia posts on AI-powered search would resonate with your readers — they are more builder-oriented than marketing-heavy, which seems to match your vibe.\n\nRather than dump a list, I can point you to the 2-3 most relevant pieces and let you decide if any of them are worth a mention or a riff in the newsletter.\n\nAlso — I owe you cookies and Red Bulls for even reading this far. Happy to deliver those in person next time we cross paths at a Portland AI event.\n\nCheers,\n[Your Name]`,
+        followUp:
+          'Happy to send the 2-3 most relevant Algolia posts if you want a quick look.',
+      },
+      linkedin: {
+        title: 'LinkedIn DM: short newsletter pitch',
+        summary: 'Compact version that keeps the casual tone.',
+        body:
+          'Hey Sam - I have been reading Altered Craft and think some recent Algolia posts on AI-powered search would genuinely fit your audience. Happy to point you to the 2-3 most relevant ones instead of dumping a list. Also I owe you cookies and Red Bulls for reading this 😄',
+        followUp: 'Can send the links here if you want a quick look.',
+      },
+      x_dm: {
+        title: 'X DM: shortest version',
+        summary: 'Quick, casual DM for maximum response rate.',
+        body:
+          'Hey Sam - love Altered Craft. Think some Algolia AI search posts would fit your readers. Happy to send the 2-3 best ones. Also: cookies and Red Bulls are on me 🍪',
+        followUp: 'Want me to send the links?',
+      },
+    },
+  },
 ];

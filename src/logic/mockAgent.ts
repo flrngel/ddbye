@@ -54,6 +54,7 @@ function inferHints(input: RequestInput): string[] {
   if (lower.includes('pg') || lower.includes('paul graham')) hints.push('Paul Graham');
   if (lower.includes('hacker news') || lower.includes('hn')) hints.push('Hacker News');
   if (lower.includes('andreessen') || lower.includes('a16z') || lower.includes('marc')) hints.push('Andreessen / a16z');
+  if (lower.includes('sam keen') || lower.includes('altered craft')) hints.push('Sam Keen');
   if (!hints.length) hints.push('Unresolved target');
   hints.push(input.preferredChannel === 'x_dm' ? 'X DM' : input.preferredChannel === 'linkedin' ? 'LinkedIn DM' : 'Email');
   return hints;
@@ -232,6 +233,10 @@ export function createSimulatedRequest(input: RequestInput): DiligenceRequest {
 
   if (lower.includes('andreessen') || lower.includes('a16z') || lower.includes('marc')) {
     return fillSeed(seededCases[1], input);
+  }
+
+  if (lower.includes('sam keen') || lower.includes('altered craft') || lower.includes('sam') && lower.includes('keen')) {
+    return fillSeed(seededCases[2], input);
   }
 
   return buildGenericCase(input);
