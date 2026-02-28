@@ -8,13 +8,14 @@ DDBye turns a messy target brief into defensible, evidence-backed outreach in un
 
 ```mermaid
 flowchart LR
-    A["Messy brief\n'PG, famous for YC —\nwant to explore doing\nbusiness with Hacker News'"] --> B["Parse"]
-    B --> C["Resolve"]
-    C --> D["Research"]
-    D --> E["Synthesize"]
-    E --> F["Draft"]
-    F --> G["Quality Gate"]
-    G --> H["Outreach Pack\nEmail + LinkedIn + X DM\nwith evidence provenance"]
+    A["Messy brief\n'PG, famous for YC —\nwant to explore doing\nbusiness with Hacker News'"] --> B["1. Parse"]
+    B --> C["2. Resolve"]
+    C --> D["3. Research"]
+    D --> E["4. Synthesize"]
+    E --> F["5. Draft"]
+    F --> G{"6. Quality\nGate"}
+    G -- "pass" --> H["Outreach Pack\nEmail + LinkedIn + X DM\nwith evidence provenance"]
+    G -- "violations found\n(auto-retry once)" --> F
 
     subgraph agent["Claude Agent SDK Worker"]
         B
@@ -30,6 +31,7 @@ flowchart LR
 
     style A fill:#f3f0ff,stroke:#7c6fc4,color:#1a1a2e
     style H fill:#eef3ff,stroke:#5b8def,color:#1a1a2e
+    style G fill:#fff3e0,stroke:#f57c00,color:#1a1a2e
     style agent fill:#fafafa,stroke:#d0d0d0,stroke-dasharray:5 5
     style W fill:#fff8e1,stroke:#f9a825,color:#1a1a2e
 ```
@@ -57,7 +59,7 @@ DDBye enforces a simple rule: **never write copy before resolving the target.** 
 | **Draft** | Writes email, LinkedIn DM, and X DM — all grounded in evidence | - |
 | **Quality Gate** | Audits for overclaiming, fake familiarity, and unsupported assertions | - |
 
-If the quality gate catches violations, it automatically re-drafts with corrections. One retry, no loops.
+If the quality gate catches violations, it loops back to the draft step with the violation list as corrections. One automatic retry — if the re-draft still has issues, it ships with warnings attached.
 
 ### What Makes It Different
 
