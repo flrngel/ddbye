@@ -22,7 +22,6 @@ import { Link } from 'react-router-dom';
 import { SectionCard } from '@/components/SectionCard';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/time';

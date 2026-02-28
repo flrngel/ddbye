@@ -7,16 +7,6 @@ import type { Channel, DiligenceRequest, GoalType, RequestInput, ResearchFocus, 
 
 type DraftInput = RequestInput;
 
-const defaultDraft: DraftInput = {
-  targetBrief: '',
-  objective: '',
-  offer: '',
-  preferredChannel: 'email',
-  tone: 'respectful',
-  goalType: 'sell',
-  focuses: ['person_background', 'service_surface', 'objections'],
-};
-
 type AppContextValue = {
   requests: DiligenceRequest[];
   selectedId: string;
@@ -97,7 +87,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isMockMode) return;
     let cancelled = false;
-    setIsLoading(true);
     api.fetchRequests()
       .then((data) => {
         if (cancelled) return;
@@ -133,9 +122,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const timeouts = timeoutsRef.current;
+    const sseCleanups = sseCleanupRef.current;
     return () => {
-      timeoutsRef.current.forEach((timers) => timers.forEach((tid) => window.clearTimeout(tid)));
-      sseCleanupRef.current.forEach((cleanup) => cleanup());
+      timeouts.forEach((timers) => timers.forEach((tid) => window.clearTimeout(tid)));
+      sseCleanups.forEach((cleanup) => cleanup());
     };
   }, []);
 
